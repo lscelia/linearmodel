@@ -3,7 +3,74 @@ title: "Linear Models"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup,message=FALSE}
+library(tidyverse)
+library(p8105.datasets)
+
+set.seed(1)
+```
+
+
+# Model Fitting
+
+## Import data
+```{r}
+data("nyc_airbnb")
+
+nyc_airbnb = 
+  nyc_airbnb %>% 
+  mutate(stars = review_scores_location / 2) %>% 
+  rename(
+    borough = neighbourhood_group,
+    neighborhood = neighbourhood) %>% 
+  filter(borough != "Staten Island") %>% 
+  select(price, stars, borough, neighborhood, room_type)
+```
+
+
+## Fit a model
+```{r}
+nyc_airbnb %>% 
+  ggplot(aes(x = stars, y = price, color = borough)) +
+  geom_point()
+```
+
+fit the model we care about
+```{r}
+fit = lm(price ~ stars + borough, data = nyc_airbnb)
+```
+
+look at the results...
+```{r, include = FALSE}
+fit
+
+summary(fit)
+summary(fit)$coef
+coef(fit)
+fitted.values(fit)
+residuals(fit)
+```
+
+Let's look at the results better
+```{r}
+broom::glance(fit)
+
+broom::tidy(fit) %>% 
+  select(term, estimate, p.value) %>% 
+  mutate(term = str_replace(term, "borough", "Borough: ")) %>% 
+  knitr::kable(digits = 3)
+```
+
+
+## Be in control of factors
+
+```{r}
 
 ```
+
+
+
+
+
+
 
