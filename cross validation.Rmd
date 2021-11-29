@@ -1,0 +1,11 @@
+---
+title: "Cross Validation"
+output: github_document
+---
+
+```{r setup, message=FALSE}
+library(tidyverse)
+library(modelr)
+library(mgcv)
+```
+
