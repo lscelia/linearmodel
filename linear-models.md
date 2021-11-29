@@ -267,3 +267,65 @@ nyc_airbnb %>%
 ```
 
 ![](linear-models_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+## Logistic Regression
+
+``` r
+nyc_airbnb = 
+  nyc_airbnb %>% 
+  #prob of being a expensive airbnb based on stars and roomtype
+  mutate(
+    expensive_apt = as.numeric(price > 500)
+  )
+```
+
+let’s fit a logistic regression for the binary outcome
+
+``` r
+logistic_fit = 
+  glm(
+    expensive_apt ~ stars + borough,
+    data = nyc_airbnb,
+    #default: simple linear
+    family = binomial())
+
+logistic_fit %>% 
+  broom::tidy() %>% 
+  #more tidy
+  mutate(
+    term = str_replace(term, "borough", "Borough: "),
+    estimate = exp(estimate)
+  ) %>% 
+  select(term, OR = estimate, p.value)
+```
+
+    ## # A tibble: 5 × 3
+    ##   term                      OR  p.value
+    ##   <chr>                  <dbl>    <dbl>
+    ## 1 (Intercept)       0.000610   1.41e-20
+    ## 2 stars             2.15       2.92e- 6
+    ## 3 Borough: Brooklyn 0.307      3.94e-22
+    ## 4 Borough: Queens   0.142      7.85e- 9
+    ## 5 Borough: Bronx    0.00000123 9.40e- 1
+
+``` r
+nyc_airbnb %>% 
+  modelr::add_predictions(logistic_fit) %>% 
+  #get more readable probability values
+  mutate(pred = boot::inv.logit(pred))
+```
+
+    ## # A tibble: 40,492 × 7
+    ##    price stars borough neighborhood room_type       expensive_apt          pred
+    ##    <dbl> <dbl> <fct>   <chr>        <fct>                   <dbl>         <dbl>
+    ##  1    99   5   Bronx   City Island  Private room                0  0.0000000343
+    ##  2   200  NA   Bronx   City Island  Private room                0 NA           
+    ##  3   300  NA   Bronx   City Island  Entire home/apt             0 NA           
+    ##  4   125   5   Bronx   City Island  Entire home/apt             0  0.0000000343
+    ##  5    69   5   Bronx   City Island  Private room                0  0.0000000343
+    ##  6   125   5   Bronx   City Island  Entire home/apt             0  0.0000000343
+    ##  7    85   5   Bronx   City Island  Entire home/apt             0  0.0000000343
+    ##  8    39   4.5 Bronx   Allerton     Private room                0  0.0000000234
+    ##  9    95   5   Bronx   Allerton     Entire home/apt             0  0.0000000343
+    ## 10   125   4.5 Bronx   Allerton     Entire home/apt             0  0.0000000234
+    ## # … with 40,482 more rows

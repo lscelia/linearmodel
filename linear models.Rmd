@@ -178,3 +178,42 @@ nyc_airbnb %>%
   theme(axis.text.x = element_text(angle = 80, hjust = 1))
 ```
 
+
+## Logistic Regression
+
+```{r}
+nyc_airbnb = 
+  nyc_airbnb %>% 
+  #prob of being a expensive airbnb based on stars and roomtype
+  mutate(
+    expensive_apt = as.numeric(price > 500)
+  )
+```
+
+let's fit a logistic regression for the binary outcome
+```{r}
+logistic_fit = 
+  glm(
+    expensive_apt ~ stars + borough,
+    data = nyc_airbnb,
+    #default: simple linear
+    family = binomial())
+
+logistic_fit %>% 
+  broom::tidy() %>% 
+  #more tidy
+  mutate(
+    term = str_replace(term, "borough", "Borough: "),
+    estimate = exp(estimate)
+  ) %>% 
+  select(term, OR = estimate, p.value)
+ 
+nyc_airbnb %>% 
+  modelr::add_predictions(logistic_fit) %>% 
+  #get more readable probability values
+  mutate(pred = boot::inv.logit(pred))
+```
+
+
+
+
