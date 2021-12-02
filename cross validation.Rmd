@@ -68,7 +68,6 @@ rmse(wiggly_mod, test_df)
 ## CV iteratively
 
 Use 'modelr::cross_mc'
-
 ```{r}
 cv_df = 
   crossv_mc(nonlin_df, 100) %>% 
@@ -111,5 +110,88 @@ cv_df %>%
   ggplot(aes(x = model, y = rmse)) +
   geom_boxplot()
 ```
+
+
+## Child growth data
+
+import data
+```{r}
+child_growth_df = 
+  read_csv("nepalese_children.csv") %>% 
+  mutate(
+    #change point model
+    weight_cp = (weight > 7) * (weight - 7)
+  )
+```
+
+```{r}
+child_growth_df %>% 
+  ggplot(aes(x = weight, y = armc)) + 
+  geom_point(alpha = .2)
+```
+
+
+Consider candidates models
+```{r}
+linear_mod = lm(armc ~ weight, data = child_growth_df)
+#piece-wise linear model
+pwl_mod = lm(armc ~ weight + weight_cp, data = child_growth_df)
+smooth_mod = gam(armc ~ s(weight), data = child_growth_df)
+```
+
+```{r}
+#plot for picec-wise
+child_growth_df %>% 
+  add_predictions(pwl_mod) %>% 
+  ggplot(aes(x = weight, y = armc)) + 
+  geom_point(alpha = 0.2) +
+  geom_line(aes(y = pred), color = "red")
+```
+
+
+Use CV to compare models
+```{r}
+cv_df = 
+  crossv_mc(child_growth_df, 100) %>% 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+  )
+```
+
+Fit models and extract RMSE
+```{r}
+cv_df = 
+  cv_df %>% 
+  mutate(
+    linear_mod = map(.x = train, ~lm(armc ~ weight, data = .x)),
+    pwl_mod = map(.x = train, ~lm(armc ~ weight + weight_cp, data = .x)),
+    smooth_mod = map(.x = train, ~gam(armc ~ s(weight), data = .x))
+  ) %>% 
+  mutate(
+    #map 2 things, show double value
+    rmse_linear = map2_dbl(.x = linear_mod, .y = test, ~rmse(model = .x, data = .y )),
+    rmse_pwl = map2_dbl(.x = pwl_mod, .y = test, ~rmse(model = .x, data = .y)),
+    rmse_smooth = map2_dbl(.x = smooth_mod, .y = test, ~rmse(model = .x, data = .y ))
+  )
+```
+
+Look at RMSE distributions
+```{r}
+cv_df %>% 
+  select(.id, starts_with("rmse")) %>% 
+  pivot_longer(
+    rmse_linear:rmse_smooth,
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>% 
+  ggplot(aes(x = model, y = rmse)) +
+  geom_boxplot()
+
+#We can see that pwl and smooth models are doing better than linear model
+#Smooth a little bit better than pwl consistently
+```
+
 
 
