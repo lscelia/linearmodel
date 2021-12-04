@@ -1,9 +1,7 @@
----
-title: "Bootstrapping"
-output: github_document
----
+Bootstrapping
+================
 
-```{r setup, message=FALSE}
+``` r
 library(tidyverse)
 library(modelr)
 library(mgcv)
@@ -30,10 +28,10 @@ scale_fill_discrete = scale_fill_viridis_d
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 ```
- 
- 
+
 ## Simulate dataset
-```{r}
+
+``` r
 set.seed(1)
 
 n_samp = 250
@@ -53,21 +51,30 @@ sim_df_nonconst = sim_df_const %>%
 ```
 
 Make a plot
-```{r}
+
+``` r
 sim_df_const %>% 
   ggplot(aes(x = x, y = y)) + 
   geom_point()
 ```
 
-```{r}
+<img src="bootstrapping_files/figure-gfm/unnamed-chunk-2-1.png" width="90%" />
+
+``` r
 sim_df_const %>% 
   lm(y ~ x, data = .) %>% 
   broom::tidy()
 ```
 
+    ## # A tibble: 2 × 5
+    ##   term        estimate std.error statistic   p.value
+    ##   <chr>          <dbl>     <dbl>     <dbl>     <dbl>
+    ## 1 (Intercept)     1.98    0.0981      20.2 3.65e- 54
+    ## 2 x               3.04    0.0699      43.5 3.84e-118
 
 ## Try using boostrap for inference
-```{r}
+
+``` r
 boostrap_sample = 
   sim_df_nonconst %>% 
   sample_frac(size = 1, replace = TRUE) %>% 
@@ -76,17 +83,25 @@ boostrap_sample =
 lm(y~x, data = boostrap_sample)
 ```
 
+    ## 
+    ## Call:
+    ## lm(formula = y ~ x, data = boostrap_sample)
+    ## 
+    ## Coefficients:
+    ## (Intercept)            x  
+    ##       1.897        3.196
 
-Write a function...
-```{r}
+Write a function…
+
+``` r
 boot_sample = function(df) {
   sample_frac(df, replace = TRUE)
 }
 ```
 
-
 Make a tibble to keep track of everything
-```{r}
+
+``` r
 boot_strap_df = 
   tibble(
     strap_number = 1:1000,
@@ -95,9 +110,9 @@ boot_strap_df =
   )
 ```
 
-
 From here, things are kinda the same as always
-```{r}
+
+``` r
 bootstrap_results = 
   boot_strap_df %>% 
   mutate(
@@ -111,17 +126,27 @@ bootstrap_results %>%
   ggplot(aes(x = estimate)) +
   geom_histogram() +
   facet_grid(~term, scales = "free")
+```
 
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+<img src="bootstrapping_files/figure-gfm/unnamed-chunk-7-1.png" width="90%" />
+
+``` r
 bootstrap_results %>% 
   group_by(term) %>% 
   summarize(boot_se = sd(estimate)) %>% 
   knitr::kable(digits = 3)
 ```
 
+| term        | boot_se |
+|:------------|--------:|
+| (Intercept) |   0.075 |
+| x           |   0.101 |
 
-## Use 'modelr'
+## Use ‘modelr’
 
-```{r}
+``` r
 sim_df_nonconst %>% 
   bootstrap(n = 1000, id = "strap_number") %>% 
   mutate(
@@ -130,9 +155,24 @@ sim_df_nonconst %>%
   )
 ```
 
+    ## # A tibble: 1,000 × 4
+    ##    strap                strap_number models results         
+    ##    <list>               <chr>        <list> <list>          
+    ##  1 <resample [250 x 3]> 0001         <lm>   <tibble [2 × 5]>
+    ##  2 <resample [250 x 3]> 0002         <lm>   <tibble [2 × 5]>
+    ##  3 <resample [250 x 3]> 0003         <lm>   <tibble [2 × 5]>
+    ##  4 <resample [250 x 3]> 0004         <lm>   <tibble [2 × 5]>
+    ##  5 <resample [250 x 3]> 0005         <lm>   <tibble [2 × 5]>
+    ##  6 <resample [250 x 3]> 0006         <lm>   <tibble [2 × 5]>
+    ##  7 <resample [250 x 3]> 0007         <lm>   <tibble [2 × 5]>
+    ##  8 <resample [250 x 3]> 0008         <lm>   <tibble [2 × 5]>
+    ##  9 <resample [250 x 3]> 0009         <lm>   <tibble [2 × 5]>
+    ## 10 <resample [250 x 3]> 0010         <lm>   <tibble [2 × 5]>
+    ## # … with 990 more rows
 
 ## Airbnb data
-```{r}
+
+``` r
 data("nyc_airbnb") 
 
 nyc_airbnb = 
@@ -143,14 +183,15 @@ nyc_airbnb =
   select(price, stars, borough, room_type)
 ```
 
-```{r}
+``` r
 nyc_airbnb %>% 
   ggplot(aes(x = stars, y = price)) +
   geom_point()
 ```
 
+<img src="bootstrapping_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
 
-```{r}
+``` r
 airbnb_boostrap_results = 
   nyc_airbnb %>% 
   filter(borough == "Manhattan") %>% 
@@ -177,6 +218,4 @@ gg_scatter =
 gg_star_est + gg_scatter
 ```
 
-
-
-
+<img src="bootstrapping_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
